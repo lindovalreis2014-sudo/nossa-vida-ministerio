@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nossa Vida e Ministério Cristão — V14</title>
+<style>
+body{margin:0;background:#f5f7fb;font-family:Arial;color:#182230}header{background:white;border-bottom:1px solid #ddd;padding:16px}main{max-width:1000px;margin:18px auto;padding:0 15px}.card{background:#fff;border:1px solid #ddd;border-radius:12px;padding:15px;margin-bottom:14px}input,select,button{font:inherit;padding:10px;border:1px solid #ddd;border-radius:8px}input{width:100%;box-sizing:border-box}button{cursor:pointer;background:white}.primary{background:#2463eb;color:white;border-color:#2463eb}.row{display:flex;gap:8px;flex-wrap:wrap}.row input{flex:1;min-width:250px}.week{border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:10px}.status{font-size:12px;margin-top:7px}.ok{color:#16834b}.err{color:#b42318}.muted{color:#687386;font-size:12px}.part{padding:10px 0;border-bottom:1px solid #eee}.part b{display:block}.badge{background:#eef3fb;padding:4px 7px;border-radius:20px;font-size:11px}
+</style></head><body>
+<header><h2 style="margin:0">📖 Nossa Vida e Ministério Cristão <span class="badge">V14</span></h2>
+<div class="muted">Cole o link oficial do WOL e importe a programação da semana.</div></header>
+<main>
+<div class="card"><h3>🔗 Semanas</h3><div class="muted">Você pode substituir qualquer link. O sistema guarda os links neste aparelho.</div><div id="weeks"></div></div>
+<div class="card"><h3>📋 Programação importada</h3><select id="sel" style="width:100%"></select><div id="status"></div><div id="program"></div></div>
+</main>
+<script>
+const weeks=[
+["40","28 de setembro–4 de outubro","https://wol.jw.org/pt/wol/d/r5/lp-t/202026255"],
+["41","5–11 de outubro","https://wol.jw.org/pt/wol/meetings/r5/lp-t/2026/41"],
+["42","12–18 de outubro","https://wol.jw.org/pt/wol/meetings/r5/lp-t/2026/42"],
+["43","19–25 de outubro","https://wol.jw.org/pt/wol/meetings/r5/lp-t/2026/43"],
+["44","26 de outubro–1.º de novembro","https://wol.jw.org/pt/wol/meetings/r5/lp-t/2026/44"]
+];
+const KEY="nvm-v14-links"; const saved=JSON.parse(localStorage.getItem(KEY)||"{}");
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function render(){
+ weeksDiv=document.getElementById("weeks");
+ weeksDiv.innerHTML=weeks.map(w=>`<div class="week"><b>${w[1]}</b><div class="row" style="margin-top:8px"><input id="u${w[0]}" value="${esc(saved[w[0]]||w[2])}"><button onclick="save('${w[0]}')">💾 Salvar</button><button class="primary" onclick="importWeek('${w[0]}')">⬇️ Importar</button><button onclick="openWol('${w[0]}')">🌐 WOL</button></div><div id="s${w[0]}" class="status"></div></div>`).join("");
+ document.getElementById("sel").innerHTML=weeks.map(w=>`<option value="${w[0]}">${w[1]}</option>`).join("");
+}
+function save(id){saved[id]=document.getElementById("u"+id).value.trim();localStorage.setItem(KEY,JSON.stringify(saved));document.getElementById("s"+id).textContent="Link salvo.";document.getElementById("s"+id).className="status ok";}
+function openWol(id){window.open(saved[id]||document.getElementById("u"+id).value,"_blank")}
+function setStatus(t,ok=false){let x=document.getElementById("status");x.textContent=t;x.className="status "+(ok?"ok":"err")}
+async function importWeek(id){
+ save(id);let url=saved[id];setStatus("Lendo a página oficial do WOL...");
+ try{
+  let r=await fetch("/.netlify/functions/wol?url="+encodeURIComponent(url));
+  let d=await r.json(); if(!r.ok) throw new Error(d.error||"Não foi possível importar.");
+  localStorage.setItem("nvm-v14-program-"+id,JSON.stringify(d));
+  document.getElementById("sel").value=id;show(d);setStatus("Programação importada com sucesso.",true);
+ }catch(e){setStatus("Não foi possível importar automaticamente. Você ainda pode abrir o WOL pelo botão. "+e.message)}
+}
+function show(d){
+ let out=`<div class="card"><h3>${esc(d.title||"Programação")}</h3><div class="muted">${esc(d.bible||"")}</div>`;
+ (d.sections||[]).forEach(s=>{out+=`<h4>${esc(s.title)}</h4>`;(s.parts||[]).forEach(p=>out+=`<div class="part"><b>${esc(p.title)}</b><span class="muted">${esc(p.duration||"")} ${esc(p.detail||"")}</span></div>`)});out+="</div>";document.getElementById("program").innerHTML=out;
+}
+document.getElementById("sel").onchange=()=>{let d=localStorage.getItem("nvm-v14-program-"+document.getElementById("sel").value);if(d)show(JSON.parse(d));};
+render();
+</script></body></html>
